@@ -1,0 +1,21 @@
+# Generated patched bundles, and anything else taken from ChatGPT.app. That is
+# OpenAI's code: never commit it. Each user generates their own locally.
+cache/
+*.asar
+app-initial-*.js
+app-primary-*.js
+
+# Copies of ChatGPT.app files kept as backups (e.g. a version-named dir like 26.1007.30912-20156/)
+[0-9]*.[0-9]*-[0-9]*/
+backup/
+backups/
+*.bak
+*.orig
+
+# Build output and per-machine files
+spawn_disclaim
+launch.sh
+*.log
+
+.DS_Store
+__pycache__/

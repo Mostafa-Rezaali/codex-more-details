@@ -1,0 +1,47 @@
+#!/bin/bash
+# Start ChatGPT with the restored "More details" -> Quick Chat action (openai/codex#52483).
+# The app bundle is untouched; inject.mjs serves the patched JS bundles over a private DevTools pipe.
+# This is a template: install.sh writes launch.sh with the DIR and NODE paths filled in.
+set -u
+DIR=@DIR@
+APP="${CHATGPT_APP:-/Applications/ChatGPT.app}"
+NODE=@NODE@
+BIN="$APP/Contents/MacOS/ChatGPT"
+LOG="$DIR/launcher.log"
+export PATH="$(dirname "$NODE"):$PATH"
+
+say() { echo "$(date '+%F %T') $*" >>"$LOG"; }
+alert() { /usr/bin/osascript -e "display notification \"$1\" with title \"ChatGPT More Details\"" >/dev/null 2>&1; }
+running() { pgrep -f "^$BIN" >/dev/null; }
+unpatched() { say "$1; opening ChatGPT unpatched"; alert "$2 Opening ChatGPT normally."; open -a "$APP"; exit 0; }
+
+# Already running with the patch: just bring it forward.
+if pgrep -f "inject.mjs --app $APP" >/dev/null; then open -a "$APP"; exit 0; fi
+
+[ -x "$NODE" ] || unpatched "node not found at $NODE" "Node.js wasn't found at $NODE. Re-run install.sh."
+
+plist="$APP/Contents/Info.plist"
+ver="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")"
+ver="$ver-$(/usr/bin/shasum "$DIR/more_details_patch.py" | cut -c1-8)"  # rebuild when the patch changes
+CACHE="$DIR/cache/$ver"
+if [ ! -f "$CACHE/.ok" ]; then
+  rm -rf "$CACHE"
+  if /usr/bin/python3 -I "$DIR/more_details_patch.py" --app "$APP" --emit "$CACHE" >>"$LOG" 2>&1; then
+    touch "$CACHE/.ok"
+    find "$DIR/cache" -mindepth 1 -maxdepth 1 ! -name "$ver" -exec rm -rf {} +
+  else
+    rm -rf "$CACHE"
+    unpatched "patch failed for $ver" "Couldn't apply the More details patch to ChatGPT $ver."
+  fi
+fi
+
+if running; then
+  choice=$(/usr/bin/osascript -e 'button returned of (display dialog "ChatGPT is running without the More details patch. Quit it and reopen with the patch?" buttons {"Cancel", "Quit and Reopen"} default button 2 with title "ChatGPT More Details")' 2>/dev/null) || exit 0
+  [ "$choice" = "Quit and Reopen" ] || exit 0
+  /usr/bin/osascript -e 'tell application id "com.openai.codex" to quit' >/dev/null 2>&1
+  for _ in $(seq 1 60); do running || break; sleep 0.5; done
+  if running; then alert "ChatGPT didn't quit, so the patch wasn't applied."; exit 1; fi
+fi
+
+say "starting ChatGPT $ver"
+exec "$NODE" "$DIR/inject.mjs" --app "$APP" --patch-dir "$CACHE" --helper "$DIR/spawn_disclaim" >>"$LOG" 2>&1
