@@ -4,16 +4,12 @@ Brings back **More details** in the Codex text-selection menu of the ChatGPT des
 
 > **Not affiliated with OpenAI.** This is an unofficial, community workaround, not endorsed or supported by OpenAI. Generated app bundles are kept on your own computer and are not distributed in this repository. The signed app installation is never modified.
 
-This fork adds Windows support to [Mygod's original macOS workaround](https://github.com/Mygod/codex-more-details). The upstream commit is `ba9c76083fa75d2453107a62a2827aeee9ef907e`.
-
 ## Windows installation
 
 Requires the Microsoft Store **OpenAI.Codex** package, Python 3, Node.js 18 or later, and Windows PowerShell 5.1 with the Appx module. Run the installer as your normal user. It supports the Codex app that is now branded ChatGPT; the separate legacy `OpenAI.ChatGPT-Desktop` package is not a target.
 
-Clone this fork, then run:
-
 ```powershell
-git clone https://github.com/Mostafa-Rezaali/codex-more-details.git
+git clone https://github.com/Mygod/codex-more-details.git
 cd codex-more-details
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-windows.ps1
 ```
@@ -28,7 +24,7 @@ The Windows launcher preserves the Store package identity using `Invoke-CommandI
 
 Tested on Store package **26.1007.2314.0**, desktop **26.1007.21434**, with Python 3.11 and Node.js 22. Both generated bundles passed `node --check`. An isolated, signed-out app loaded both patched bundles and evaluated the restored `__qcMDRun` and `__qcCan` exports. The launcher also verified its Store package identity.
 
-The signed-in selection-to-Quick-Chat interaction has **not yet been verified**. Quick Chat still depends on the app's existing capability checks. Other Windows versions, architectures, and later app builds have not been tested. The macOS workflow is retained from upstream and has not been retested by this fork.
+The signed-in selection-to-Quick-Chat interaction has **not yet been verified**. Quick Chat still depends on the app's existing capability checks. Other Windows versions, architectures, and later app builds have not been tested.
 
 For logs, open `launcher.log` in the installation folder. To recheck patch compatibility without starting the app:
 

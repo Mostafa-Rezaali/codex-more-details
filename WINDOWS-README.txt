@@ -1,8 +1,6 @@
 Codex More Details - Windows adaptation
 
-Windows fork: https://github.com/Mostafa-Rezaali/codex-more-details
-Original source: https://github.com/Mygod/codex-more-details
-Upstream commit: ba9c76083fa75d2453107a62a2827aeee9ef907e
+Source: https://github.com/Mygod/codex-more-details
 Tested on October 13, 2026 with Store package 26.1007.2314.0
 (desktop version 26.1007.21434).
 

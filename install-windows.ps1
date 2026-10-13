@@ -3,8 +3,9 @@ param()
 $ErrorActionPreference = 'Stop'
 $supportDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Codex\Tools\codex-more-details'
 $node = (Get-Command node.exe -ErrorAction Stop).Source
-$python = (& python -c 'import sys; print(sys.executable)').Trim()
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $python)) { throw 'Working Python 3 is required.' }
+# ASCII-escaped JSON survives Python's ANSI stdout being decoded as OEM by Windows PowerShell.
+$python = & python -c 'import json, sys; print(json.dumps(sys.executable))' | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $python -or -not (Test-Path -LiteralPath $python)) { throw 'Working Python 3 is required.' }
 & $node -e 'process.exit(parseInt(process.versions.node) < 18 ? 1 : 0)'
 if ($LASTEXITCODE -ne 0) { throw 'Node.js 18 or newer is required.' }
 $package = Get-AppxPackage -Name 'OpenAI.Codex' | Sort-Object Version -Descending | Select-Object -First 1
@@ -16,7 +17,7 @@ New-Item -ItemType Directory -Force -Path $supportDir | Out-Null
 foreach ($name in @('more_details_patch.py', 'inject.mjs', 'launch-windows.ps1', 'uninstall-windows.ps1', 'WINDOWS-README.txt')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination (Join-Path $supportDir $name) -Force
 }
-@{ node = $node; python = $python; upstream = 'https://github.com/Mygod/codex-more-details'; upstreamCommit = 'ba9c76083fa75d2453107a62a2827aeee9ef907e' } |
+@{ node = $node; python = $python } |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $supportDir 'windows-config.json') -Encoding UTF8
 & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass `
     -File (Join-Path $supportDir 'launch-windows.ps1') -CheckOnly

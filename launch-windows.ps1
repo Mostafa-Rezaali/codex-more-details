@@ -8,6 +8,11 @@ $launchLock = $null
 function Write-LaunchLog([string]$Text) {
     Add-Content -LiteralPath $logPath -Value "$(Get-Date -Format o) $Text" -Encoding UTF8
 }
+function Invoke-Logged([string]$FilePath, [string[]]$Arguments) {
+    # Windows PowerShell 5.1 turns redirected stderr into errors, so 'Stop' would abort at the first line.
+    $ErrorActionPreference = 'Continue'
+    & $FilePath @Arguments 2>&1 | ForEach-Object { "$_" } | Out-File -LiteralPath $logPath -Encoding utf8 -Append
+}
 function Show-LaunchMessage([string]$Text) {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show($Text, 'Codex More Details', 'OK', 'Information') | Out-Null
@@ -44,7 +49,7 @@ try {
     }
     if (-not $cacheValid) {
         Write-LaunchLog "Preparing patch for $($package.PackageFullName)"
-        & $settings.python -I $patcher --app $appDir --emit $cacheDir 2>&1 | Out-File -FilePath $logPath -Encoding utf8 -Append
+        Invoke-Logged $settings.python @('-I', $patcher, '--app', $appDir, '--emit', $cacheDir)
         if ($LASTEXITCODE -ne 0) { throw 'This app version did not pass the patch compatibility checks. See launcher.log.' }
         $bundles = @(Get-ChildItem -LiteralPath $cacheDir -Filter '*.js' | ForEach-Object {
             @{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
@@ -101,7 +106,7 @@ public static class MoreDetailsPackageIdentity {
     Write-LaunchLog "Starting $($package.PackageFullName) with the runtime patch"
     $injectArgs = @($injector, '--app', $appDir, '--patch-dir', $cacheDir)
     if ($SmokeTestDir) { $injectArgs += @('--smoke-test-dir', $SmokeTestDir) }
-    & $settings.node @injectArgs 2>&1 | Out-File -FilePath $logPath -Encoding utf8 -Append
+    Invoke-Logged $settings.node $injectArgs
     $injectExit = $LASTEXITCODE
     if ($SmokeTestDir) { $injectExit | Set-Content -LiteralPath (Join-Path $supportDir 'smoke-test.exit') }
     if ($injectExit -ne 0) { throw "The patch launcher exited with code $injectExit. See launcher.log." }
